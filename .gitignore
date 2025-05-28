@@ -57,7 +57,9 @@ coverage.xml
 
 # celery beat schedule file
 celerybeat-schedule
-
+# ml models
+*.pkl
+final_model
 
 # Environments
 .env
