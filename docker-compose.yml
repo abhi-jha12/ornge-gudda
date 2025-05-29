@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   food-api:
@@ -45,8 +45,10 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.route-prefix=/"
+      - "--web.external-url=/prometheus/"
     networks:
       - monitoring
     restart: unless-stopped
@@ -63,6 +65,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=https://ornge.site/grafana
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_DOMAIN=ornge.site
     networks:
       - monitoring
     restart: unless-stopped
@@ -73,7 +76,10 @@ services:
     volumes:
       - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml
       - loki_data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+      - "-server.http-listen-port=3100"
+      - "-server.path-prefix=/loki/"
     networks:
       - monitoring
     restart: unless-stopped
