@@ -54,21 +54,22 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:latest
-    container_name: food-api-grafana
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=https://ornge.site/grafana
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_SERVER_DOMAIN=ornge.site
-    networks:
-      - monitoring
-    restart: unless-stopped
+  image: grafana/grafana:latest
+  container_name: food-api-grafana
+  volumes:
+    - grafana_data:/var/lib/grafana
+    - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+  environment:
+    - GF_SECURITY_ADMIN_PASSWORD=admin123
+    - GF_SECURITY_ADMIN_USER=admin
+    - GF_USERS_ALLOW_SIGN_UP=false
+    - GF_SERVER_ROOT_URL=https://ornge.site/grafana
+    - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    - GF_SERVER_DOMAIN=ornge.site
+    - GF_SERVER_ENABLE_GZIP=true
+  networks:
+    - monitoring
+  restart: unless-stopped
 
   loki:
     image: grafana/loki:latest
