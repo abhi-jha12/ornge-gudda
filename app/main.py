@@ -6,13 +6,27 @@ from .routers import health, predict
 from .services.model_service import model_service
 import logging
 import json
+import os
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
-# Configure structured logging for Loki
+# Ensure logs directory exists
+os.makedirs("/app/logs", exist_ok=True)
+
+# Configure rotating file handler with log rotation
+rotating_handler = RotatingFileHandler(
+    filename="/app/logs/app.log",
+    maxBytes=10 * 1024 * 1024,
+    backupCount=2,
+    encoding="utf-8",
+    delay=False,
+)
+
+# Configure structured logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("/app/logs/app.log"), logging.StreamHandler()],
+    handlers=[rotating_handler, logging.StreamHandler()],
 )
 
 logger = logging.getLogger(__name__)

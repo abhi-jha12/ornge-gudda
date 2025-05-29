@@ -1,0 +1,29 @@
+groups:
+- name: food-api-alerts
+  rules:
+  - alert: HighPredictionLatency
+    expr: histogram_quantile(0.95, rate(food_classifier_latency_seconds_bucket[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High prediction latency detected"
+      description: "95th percentile prediction latency is {{ $value }}s"
+
+  - alert: LowPredictionConfidence
+    expr: avg(food_classifier_confidence_sum / food_classifier_confidence_count) < 0.7
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low average prediction confidence"
+      description: "Average confidence score is {{ $value }}"
+
+  - alert: PredictionErrorsHigh
+    expr: rate(food_classifier_errors_total[5m]) > 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Prediction errors detected"
+      description: "Error rate is {{ $value }}"
