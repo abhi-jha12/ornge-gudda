@@ -61,6 +61,13 @@ celerybeat-schedule
 *.pkl
 final_model
 
+# monitoring
+prometheus_data/
+grafana_data/
+loki_data/
+
+logs/*.log
+
 # Environments
 .env
 .venv
