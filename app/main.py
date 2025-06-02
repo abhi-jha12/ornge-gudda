@@ -7,11 +7,10 @@ from .services.model_service import model_service
 import logging
 import os
 from logging.handlers import RotatingFileHandler
-from datetime import datetime
+from fastapi.staticfiles import StaticFiles
 
 # Ensure logs directory exists
 os.makedirs("/app/logs", exist_ok=True)
-
 # Configure rotating file handler with log rotation
 rotating_handler = RotatingFileHandler(
     filename="/app/logs/app.log",
@@ -37,7 +36,7 @@ def create_app():
         version="1.0.0",
         description="API for classifying food images",
     )
-
+    app.mount("/static", StaticFiles(directory="static"), name="static")
     # Initialize Prometheus monitoring
     instrumentator = Instrumentator(
         should_group_status_codes=False,
