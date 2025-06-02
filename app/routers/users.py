@@ -3,7 +3,7 @@ from typing import List
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.schemas import OrangeUserResponse
-from ..models.users import User
+from ..models.users import OrangeUser
 
 router = APIRouter(
     prefix="/users",
@@ -14,7 +14,7 @@ router = APIRouter(
 async def get_all_users(db: Session = Depends(get_db)):
     """Get all users"""
     try:
-        users = db.query(User).all()
+        users = db.query(OrangeUser).all()
         return users
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching users: {str(e)}")
@@ -23,7 +23,7 @@ async def get_all_users(db: Session = Depends(get_db)):
 async def get_users_count(db: Session = Depends(get_db)):
     """Get total count of users"""
     try:
-        count = db.query(User).count()
+        count = db.query(OrangeUser).count()
         return {
             "total_users": count,
             "status": "success"
