@@ -36,7 +36,7 @@ def create_app():
         version="1.0.0",
         description="API for classifying food images",
     )
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
     # Initialize Prometheus monitoring
     instrumentator = Instrumentator(
         should_group_status_codes=False,
