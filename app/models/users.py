@@ -1,4 +1,4 @@
-from database import Base
+from ..database import Base
 from sqlalchemy import Column, Integer, String, TIMESTAMP, Boolean, text, ARRAY
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 import uuid
