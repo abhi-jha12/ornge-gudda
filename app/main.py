@@ -15,7 +15,7 @@ os.makedirs("/app/logs", exist_ok=True)
 # Configure rotating file handler with log rotation
 rotating_handler = RotatingFileHandler(
     filename="/app/logs/app.log",
-    maxBytes=10 * 1024 * 1024,
+    maxBytes=5 * 1024 * 1024,
     backupCount=2,
     encoding="utf-8",
     delay=False,
