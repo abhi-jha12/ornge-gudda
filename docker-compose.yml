@@ -7,6 +7,7 @@ services:
     environment:
       - ENV=production
       - ENABLE_METRICS=true
+      - DATABASE_URL=${DATABASE_URL}
     volumes:
       - logs:/app/logs
     restart: unless-stopped

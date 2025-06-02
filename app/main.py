@@ -2,10 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from .config import settings
-from .routers import health, predict
+from .routers import health, predict, users
 from .services.model_service import model_service
 import logging
-import json
 import os
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
@@ -66,6 +65,7 @@ def create_app():
     # Include routers
     app.include_router(health.router)
     app.include_router(predict.router)
+    app.include_router(users.router)
 
     @app.on_event("startup")
     async def startup_event():
