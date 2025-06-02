@@ -44,8 +44,7 @@ class PushNotificationService:
                 vapid_claims={
                     "sub": self.vapid_email
                 },
-                ttl=86400,  # 24 hours
-                urgency="high"
+                ttl=86400, 
             )
             return True
             
