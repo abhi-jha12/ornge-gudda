@@ -2,15 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..schemas.user_schemas import UserResponse
-from ..models.user import User
+from ..models.schemas import OrangeUserResponse
+from ..models.users import User
 
 router = APIRouter(
     prefix="/users",
     tags=["users"]
 )
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("/", response_model=List[OrangeUserResponse])
 async def get_all_users(db: Session = Depends(get_db)):
     """Get all users"""
     try:
