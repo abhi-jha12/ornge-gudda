@@ -7,7 +7,7 @@ class PushNotificationService:
     def __init__(self):
         self.vapid_public_key = "BJGiGGiQ3z1BvTNujXCZblPCOV7dAGyi0A4lbtQT0qpRMblF3xt0L71ybVbUIIxqAZIpLeqTPlLyd7OiGj79LDU"
         self.vapid_private_key = "QK8yWCuYRVf5rs6HVEyFmqxVuQQweV2No4FYBC87o30"
-        self.vapid_email = "jhaabhishek887@gmail.com"
+        self.vapid_email = "mailto:jhaabhishek887@gmail.com"
     
     def send_notification(
         self, 
