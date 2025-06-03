@@ -99,12 +99,26 @@ services:
     restart: unless-stopped
     depends_on:
       - loki
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: food-api-rabbitmq
+    ports:
+      - "5672:5672"       
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - monitoring
+    restart: unless-stopped
 
 volumes:
   logs:
   prometheus_data:
   grafana_data:
   loki_data:
+  rabbitmq_data:
 
 networks:
   monitoring:
