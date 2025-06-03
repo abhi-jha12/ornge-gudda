@@ -45,7 +45,7 @@ class RabbitMQService:
                 self._publish_channel.queue_declare(
                     queue="notifications",
                     durable=True,
-                    arguments={"x-max-priority": 10},  # Enable priority queue if needed
+                    arguments={"x-max-priority": 10},  
                 )
                 logger.info("Publish connection established")
             except Exception as e:
@@ -60,7 +60,7 @@ class RabbitMQService:
                     self._connection_params
                 )
                 self._consume_channel = self._consume_connection.channel()
-                self._consume_channel.queue_declare(queue="notifications", durable=True)
+                self._consume_channel.queue_declare(queue="notifications", durable=True,arguments={"x-max-priority": 10})
                 self._consume_channel.basic_qos(
                     prefetch_count=10
                 )  # Process 10 messages at a time
