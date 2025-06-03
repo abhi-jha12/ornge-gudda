@@ -1,4 +1,4 @@
-from app.services import rabbitmq_service
+from app.services.rabbitmq_service import rabbitmq_service
 from ..services.push_service import push_service
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
