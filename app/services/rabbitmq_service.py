@@ -1,3 +1,4 @@
+from typing import List
 import pika
 import json
 import logging
