@@ -18,7 +18,7 @@ class RabbitMQService:
             # RabbitMQ connection parameters
             credentials = pika.PlainCredentials('admin', 'password')
             parameters = pika.ConnectionParameters(
-                host='localhost',  # Use 'rabbitmq' when running in Docker
+                host='rabbitmq', 
                 port=5672,
                 virtual_host='/',
                 credentials=credentials

@@ -35,6 +35,7 @@ services:
       - grafana
       - prometheus
       - loki
+      - rabbitmq
     restart: unless-stopped
     networks:
       - monitoring
