@@ -4,6 +4,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from .config import settings
 from .routers import health, predict, users
 from .services.model_service import model_service
+from .services.rabbitmq_service import rabbitmq_service  
 import logging
 import os
 from logging.handlers import RotatingFileHandler
@@ -37,6 +38,7 @@ def create_app():
         description="API for classifying food images",
     )
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
     # Initialize Prometheus monitoring
     instrumentator = Instrumentator(
         should_group_status_codes=False,
@@ -68,8 +70,20 @@ def create_app():
 
     @app.on_event("startup")
     async def startup_event():
+        # Load ML model
         await model_service.load_model()
+
+        # Start RabbitMQ consumer thread
+        rabbitmq_service.start_consumer_thread()
+        logger.info("RabbitMQ notification consumer thread started")
+
         logger.info("Food Classifier API started successfully")
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        # Clean up RabbitMQ connections
+        rabbitmq_service.close()
+        logger.info("RabbitMQ connections closed gracefully")
 
     return app
 
