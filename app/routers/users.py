@@ -1,3 +1,4 @@
+from app.services import rabbitmq_service
 from ..services.push_service import push_service
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
@@ -41,72 +42,41 @@ async def send_notification_to_users(
     request: NotificationRequest, db: Session = Depends(get_db)
 ):
     """
-    Send push notification to multiple users by their client_ids
+    Queue notification sending job to RabbitMQ
     """
     try:
-        # Get users with matching client_ids
-        users = (
+        # Validate that users exist (optional quick check)
+        users_count = (
             db.query(OrangeUser)
             .filter(OrangeUser.client_id.in_(request.client_ids))
-            .all()
+            .count()
         )
 
-        if not users:
+        if users_count == 0:
             raise HTTPException(
-                status_code=404, detail="No users found with the provided client_ids"
+                status_code=404, 
+                detail="No users found with the provided client_ids"
             )
 
-        results = []
-        for user in users:
-            if user.push_subscription:  # Check if user has push subscription
-                try:
-                    success = push_service.send_notification(
-                        subscription=user.push_subscription,
-                        title=request.title,
-                        body=request.body,
-                    )
-                    results.append(
-                        {
-                            "client_id": user.client_id,
-                            "status": "success" if success else "failed",
-                            "message": (
-                                "Notification sent"
-                                if success
-                                else "Failed to send notification"
-                            ),
-                        }
-                    )
-                except Exception as e:
-                    results.append(
-                        {
-                            "client_id": user.client_id,
-                            "status": "error",
-                            "message": str(e),
-                        }
-                    )
-            else:
-                results.append(
-                    {
-                        "client_id": user.client_id,
-                        "status": "skipped",
-                        "message": "User has no push subscription",
-                    }
-                )
-
-        # Count successful notifications
-        success_count = sum(1 for r in results if r["status"] == "success")
+        # Publish notification job to RabbitMQ
+        job_id = rabbitmq_service.publish_notification(
+            client_ids=request.client_ids,
+            title=request.title,
+            body=request.body
+        )
 
         return {
-            "status": "completed",
+            "status": "queued",
+            "job_id": job_id,
+            "message": "Notifications queued for processing",
             "total_users": len(request.client_ids),
-            "users_found": len(users),
-            "notifications_sent": success_count,
-            "details": results,
+            "users_found": users_count
         }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error sending notifications: {str(e)}"
+            status_code=500, 
+            detail=f"Error queuing notifications: {str(e)}"
         )
