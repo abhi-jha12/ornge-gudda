@@ -60,7 +60,7 @@ def create_app():
     @app.on_event("startup")
     async def startup_event():
         # Start RabbitMQ consumer thread
-        await rabbitmq_service.start_consumer_thread()
+        rabbitmq_service.start_consumer_thread()
         logger.info("RabbitMQ notification consumer thread started")
 
         logger.info("Food Classifier API started successfully")
