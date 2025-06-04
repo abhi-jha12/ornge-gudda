@@ -8,8 +8,6 @@ services:
       - ENV=production
       - ENABLE_METRICS=true
       - DATABASE_URL=${DATABASE_URL}
-    volumes:
-      - logs:/app/logs
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -92,7 +90,7 @@ services:
     image: grafana/promtail:latest
     container_name: food-api-promtail
     volumes:
-      - ./logs:/app/logs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
     networks:
@@ -104,7 +102,7 @@ services:
     image: rabbitmq:3-management
     container_name: food-api-rabbitmq
     ports:
-      - "5672:5672"       
+      - "5672:5672"
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: password
@@ -115,7 +113,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  logs:
   prometheus_data:
   grafana_data:
   loki_data:

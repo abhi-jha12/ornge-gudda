@@ -10,7 +10,7 @@ async def predict(file: UploadFile = File(...)):
     try:
         # Validate file
         await file_service.validate_image_file(file)
-        
+        await model_service.load_model()
         # Read and process image
         image_data = await file.read()
         img_array = await file_service.process_image(image_data)
