@@ -57,6 +57,35 @@ print_error() {
     echo -e "${RED}✗${NC} $1"
 }
 
+# Function to stop nginx if running
+stop_nginx() {
+    if systemctl is-active --quiet nginx 2>/dev/null; then
+        print_status "Stopping nginx service..."
+        systemctl stop nginx
+        print_success "Nginx stopped"
+        return 0
+    elif pgrep nginx > /dev/null 2>&1; then
+        print_status "Stopping nginx process..."
+        pkill nginx 2>/dev/null || true
+        print_success "Nginx stopped"
+        return 0
+    fi
+    return 1
+}
+
+# Function to start nginx
+start_nginx() {
+    if command -v systemctl > /dev/null 2>&1; then
+        print_status "Starting nginx service..."
+        systemctl start nginx
+        print_success "Nginx started"
+    else
+        print_status "Starting nginx..."
+        nginx
+        print_success "Nginx started"
+    fi
+}
+
 # Function to check disk space
 check_disk_space() {
     local available=$(df / | awk 'NR==2{print $4}')
@@ -66,7 +95,19 @@ check_disk_space() {
         print_warning "Low disk space: ${available_gb}GB available"
         if [ "$CLEANUP" = true ]; then
             print_status "Running aggressive cleanup due to low disk space..."
+            
+            # Stop nginx before aggressive cleanup
+            NGINX_WAS_RUNNING=false
+            if stop_nginx; then
+                NGINX_WAS_RUNNING=true
+            fi
+            
             docker system prune -af --volumes 2>/dev/null || true
+            
+            # Restart nginx if it was running
+            if [ "$NGINX_WAS_RUNNING" = true ]; then
+                start_nginx
+            fi
         fi
     fi
 }
@@ -102,7 +143,12 @@ deploy() {
     # Check available disk space
     check_disk_space
     
-    # Step 1: Stop running containers
+    # Step 1: Stop nginx and containers
+    NGINX_WAS_RUNNING=false
+    if stop_nginx; then
+        NGINX_WAS_RUNNING=true
+    fi
+    
     print_status "Stopping containers..."
     docker-compose down
     print_success "Containers stopped"
@@ -147,17 +193,7 @@ deploy() {
         print_success "Build cleanup completed"
     fi
     
-    # Step 6: Show container status
-    print_status "Container status:"
-    docker-compose ps
-    
-    # Step 7: Show final disk usage
-    if [ "$VERBOSE" = true ]; then
-        echo ""
-        show_docker_stats
-    fi
-    
-    # Step 8: Health check (optional)
+    # Step 6: Health check for containers
     print_status "Waiting for services to be ready..."
     sleep 5
     
@@ -168,7 +204,32 @@ deploy() {
         echo "$FAILED_CONTAINERS"
         print_status "Showing logs for failed containers:"
         docker-compose logs --tail=20 $FAILED_CONTAINERS
+        
+        # Don't start nginx if containers failed
+        print_error "Deployment failed - nginx will remain stopped"
         exit 1
+    fi
+    
+    # Step 7: Start nginx if it was running before
+    if [ "$NGINX_WAS_RUNNING" = true ]; then
+        start_nginx
+        
+        # Test nginx configuration
+        sleep 2
+        if ! systemctl is-active --quiet nginx 2>/dev/null && ! pgrep nginx > /dev/null 2>&1; then
+            print_error "Nginx failed to start properly"
+            exit 1
+        fi
+    fi
+    
+    # Step 8: Show container status
+    print_status "Container status:"
+    docker-compose ps
+    
+    # Step 9: Show final disk usage
+    if [ "$VERBOSE" = true ]; then
+        echo ""
+        show_docker_stats
     fi
     
     print_success "Deployment completed successfully!"
@@ -178,11 +239,24 @@ deploy() {
     print_status "Deployment Summary:"
     echo "  - Git commit: $(git rev-parse --short HEAD)"
     echo "  - Containers: $(docker-compose ps --services | wc -l)"
+    echo "  - Nginx status: $(if [ "$NGINX_WAS_RUNNING" = true ]; then echo "Running"; else echo "Not managed"; fi)"
     echo "  - Deployment time: $(date)"
 }
 
 # Trap to handle script interruption
-trap 'print_error "Deployment interrupted"; exit 1' INT TERM
+cleanup_on_exit() {
+    print_error "Deployment interrupted"
+    
+    # If nginx was stopped during deployment, try to restart it
+    if [ "${NGINX_WAS_RUNNING:-false}" = true ]; then
+        print_status "Attempting to restart nginx..."
+        start_nginx || print_error "Failed to restart nginx"
+    fi
+    
+    exit 1
+}
+
+trap cleanup_on_exit INT TERM
 
 # Run deployment
 deploy
