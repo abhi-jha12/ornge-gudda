@@ -30,7 +30,7 @@ class RabbitMQService:
             credentials=pika.PlainCredentials("admin", "password"),
             heartbeat=600,
             blocked_connection_timeout=300,
-            connection_attempts=3,
+            connection_attempts=5,
             retry_delay=5,
         )
 

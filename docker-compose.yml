@@ -1,13 +1,42 @@
 version: "3.8"
 
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: food-api-rabbitmq
+    ports:
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./infrastructure/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./infrastructure/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./infrastructure/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+    networks:
+      - monitoring
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
   food-api:
-    build: .
+    build:
+      context: ./services/food-api
+      dockerfile: Dockerfile
     container_name: food-recognition-api
     environment:
       - ENV=production
       - ENABLE_METRICS=true
       - DATABASE_URL=${DATABASE_URL}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASSWORD=password
+      - RABBITMQ_VHOST=/
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -17,6 +46,9 @@ services:
       start_period: 60s
     networks:
       - monitoring
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine
@@ -25,7 +57,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot
     depends_on:
@@ -98,19 +130,6 @@ services:
     restart: unless-stopped
     depends_on:
       - loki
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: food-api-rabbitmq
-    ports:
-      - "5672:5672"
-    environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: password
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    networks:
-      - monitoring
-    restart: unless-stopped
 
 volumes:
   prometheus_data:
