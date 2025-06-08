@@ -49,6 +49,29 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=${USER_DATABASE_URL}
+      - RABBITMQ_HOST=rabbitmq
+      - JWT_SECRET=${JWT_SECRET}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - monitoring
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine
