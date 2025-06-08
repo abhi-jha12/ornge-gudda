@@ -1,4 +1,4 @@
-# Use Node.js 18 slim image 
+# Use Node.js 18 slim image
 FROM node:18-slim
 
 # Set working directory
@@ -13,26 +13,23 @@ RUN apt-get update && apt-get install -y \
 COPY package*.json ./
 
 # Install Node.js dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy the entire application
 COPY . .
 
-# Create a non-root user for security
-RUN useradd -m -u 1000 appuser
-
 # Create logs directory and set proper ownership
-RUN mkdir -p logs && chown -R appuser:appuser /app
+RUN mkdir -p logs && chown -R node:node /app
 
-# Switch to non-root user
-USER appuser
+# Switch to non-root user (node user already exists)
+USER node
 
 # Expose port
 EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+    CMD curl -f http://localhost:3001/health || exit 1
 
 # Run the application
 CMD ["node", "src/app.js"]
