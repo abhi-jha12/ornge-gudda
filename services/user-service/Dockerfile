@@ -28,7 +28,7 @@ RUN mkdir -p logs && chown -R appuser:appuser /app
 USER appuser
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
