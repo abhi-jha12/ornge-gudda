@@ -1,3 +1,4 @@
+import os
 from typing import List
 import pika
 import json
@@ -23,11 +24,15 @@ class RabbitMQService:
 
     def _setup_connection_parameters(self):
         """Configure RabbitMQ connection parameters"""
+        rabbitmq_user = os.getenv("RABBITMQ_USER", "admin")
+        rabbitmq_password = os.getenv("RABBITMQ_PASSWORD", "password")
+        rabbitmq_host = os.getenv("RABBITMQ_HOST", "rabbitmq")
+        rabbitmq_port = int(os.getenv("RABBITMQ_PORT", "5672"))
         self._connection_params = pika.ConnectionParameters(
-            host="rabbitmq",
-            port=5672,
+            host=rabbitmq_host,
+            port=rabbitmq_port,
             virtual_host="/",
-            credentials=pika.PlainCredentials("admin", "password"),
+            credentials=pika.PlainCredentials(rabbitmq_user, rabbitmq_password),
             heartbeat=600,
             blocked_connection_timeout=300,
             connection_attempts=5,
@@ -45,7 +50,7 @@ class RabbitMQService:
                 self._publish_channel.queue_declare(
                     queue="notifications",
                     durable=True,
-                    arguments={"x-max-priority": 10},  
+                    arguments={"x-max-priority": 10},
                 )
                 logger.info("Publish connection established")
             except Exception as e:
@@ -60,7 +65,11 @@ class RabbitMQService:
                     self._connection_params
                 )
                 self._consume_channel = self._consume_connection.channel()
-                self._consume_channel.queue_declare(queue="notifications", durable=True,arguments={"x-max-priority": 10})
+                self._consume_channel.queue_declare(
+                    queue="notifications",
+                    durable=True,
+                    arguments={"x-max-priority": 10},
+                )
                 self._consume_channel.basic_qos(
                     prefetch_count=10
                 )  # Process 10 messages at a time
