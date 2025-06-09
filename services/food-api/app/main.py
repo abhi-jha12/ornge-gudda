@@ -5,8 +5,6 @@ from .config import settings
 from .routers import health, predict, users
 from .services.rabbitmq_service import rabbitmq_service  
 import logging
-import os
-from logging.handlers import RotatingFileHandler
 from fastapi.staticfiles import StaticFiles
 
 
