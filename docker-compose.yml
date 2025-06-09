@@ -57,7 +57,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DATABASE_URL=${USER_DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL}
       - RABBITMQ_HOST=rabbitmq
       - JWT_SECRET=${JWT_SECRET}
     restart: unless-stopped
