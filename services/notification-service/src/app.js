@@ -116,7 +116,7 @@ async function processNotification(notificationData) {
       console.error("Invalid push subscription format:", parseError);
       return;
     }
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const baseUrl = `https://ornge.site/notification-service`;
 
     // Send push notification
     const notificationPayload = JSON.stringify({
