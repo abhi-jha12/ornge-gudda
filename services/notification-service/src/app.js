@@ -27,7 +27,7 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   );
 }
 
-pool.connect((err, release) => {
+pool.connect((err,client, release) => {
   if (err) {
     console.error("❌ Database connection failed:", err.message);
   } else {
