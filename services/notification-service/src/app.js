@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
+const path = require("path");
 const { Pool } = require("pg");
 const webpush = require("web-push");
 require("dotenv").config();
