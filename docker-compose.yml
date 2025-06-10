@@ -82,6 +82,10 @@ services:
       - PORT=3002
       - DATABASE_URL=${DATABASE_URL}
       - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASSWORD=password
+      - RABBITMQ_VHOST=/
       - JWT_SECRET=${JWT_SECRET}
     restart: unless-stopped
     healthcheck:
