@@ -1,22 +1,18 @@
 #!/bin/bash
 
-# deploy.sh - Automated deployment script for Docker Compose applications
-# Usage: ./deploy.sh [--no-cleanup] [--verbose]
 
-set -e  # Exit on any error
+set -e  
 
-# Colors for output
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m' 
 
 # Default options
 CLEANUP=true
 VERBOSE=false
-
-# Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --no-cleanup)
@@ -57,7 +53,7 @@ print_error() {
     echo -e "${RED}✗${NC} $1"
 }
 
-# Function to stop nginx if running
+# Stop nginx, terraform if running
 stop_nginx() {
     if systemctl is-active --quiet nginx 2>/dev/null; then
         print_status "Stopping nginx service..."
@@ -73,7 +69,7 @@ stop_nginx() {
     return 1
 }
 
-# Function to start nginx
+# Start nginx, terraform
 start_nginx() {
     if command -v systemctl > /dev/null 2>&1; then
         print_status "Starting nginx service..."
@@ -86,7 +82,7 @@ start_nginx() {
     fi
 }
 
-# Function to check disk space
+# Check disk space
 check_disk_space() {
     local available=$(df / | awk 'NR==2{print $4}')
     local available_gb=$((available / 1024 / 1024))
@@ -95,16 +91,12 @@ check_disk_space() {
         print_warning "Low disk space: ${available_gb}GB available"
         if [ "$CLEANUP" = true ]; then
             print_status "Running aggressive cleanup due to low disk space..."
-            
-            # Stop nginx before aggressive cleanup
             NGINX_WAS_RUNNING=false
             if stop_nginx; then
                 NGINX_WAS_RUNNING=true
             fi
             
             docker system prune -af --volumes 2>/dev/null || true
-            
-            # Restart nginx if it was running
             if [ "$NGINX_WAS_RUNNING" = true ]; then
                 start_nginx
             fi
