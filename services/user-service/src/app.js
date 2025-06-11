@@ -61,29 +61,55 @@ const authenticateUser = async (req, res, next) => {
     next(error);
   }
 };
-const attachIpInfo = async (req, res, next) => {
-  try {
-    const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || 
-                    req.headers['x-real-ip'] ||
-                    req.ip ||
-                    '127.0.0.1';
 
+const attachIpAndWeather = async (req, res, next) => {
+  try {
+    const clientIp =
+      req.headers["x-forwarded-for"]?.split(",")[0] ||
+      req.headers["x-real-ip"] ||
+      req.ip ||
+      "127.0.0.1";
     const ipInfoResponse = await fetch("https://bscan.info/api/ipinfo", {
       headers: {
         "Content-Type": "application/json",
-        "Referer": "https://bscan.info",
-        "X-Forwarded-For": clientIp
+        Referer: "https://bscan.info",
+        "X-Forwarded-For": clientIp,
       },
     });
 
-    req.ipInfo = {
+    const ipData = await ipInfoResponse.json();
+    const ipInfo = {
       ip: clientIp,
-      data: await ipInfoResponse.json()
+      data: ipData,
     };
+    if (ipData.loc) {
+      const [lat, lon] = ipData.loc.split(",");
+      const apiKey = "1ab3b1fb58d5738e290b8d859ff318e4";
+
+      // Fetch weather data
+      const weatherRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
+      );
+
+      if (weatherRes.ok) {
+        const weatherData = await weatherRes.json();
+        ipInfo.weather = {
+          temp: weatherData.main?.temp,
+          conditions: weatherData.weather?.map((w) => ({
+            main: w.main,
+            icon: w.icon,
+          })),
+        };
+      }
+    }
+
+    req.ipInfo = ipInfo;
   } catch (error) {
+    console.error("Error in attachIpAndWeather:", error);
     req.ipInfo = {
-      ip: clientIp || 'Unknown',
-      error: "Could not fetch IP information"
+      ip: clientIp || "Unknown",
+      error: "Could not fetch complete IP information",
+      ...(req.ipInfo || {}), // Preserve any partial data we might have
     };
   }
   next();
@@ -108,7 +134,7 @@ app.get("/health", (req, res) => {
 });
 
 // User endpoints
-app.get("/api/me", authenticateUser, attachIpInfo, async (req, res) => {
+app.get("/api/me", authenticateUser, attachIpAndWeather, async (req, res) => {
   res.json({
     success: true,
     user: req.user,
