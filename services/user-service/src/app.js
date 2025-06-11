@@ -94,7 +94,6 @@ const attachIpAndWeather = async (req, res, next) => {
           temp: weatherData.main?.temp,
           conditions: weatherData.weather?.map((w) => ({
             main: w.main,
-            icon: w.icon,
           })),
         };
       }

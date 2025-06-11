@@ -7,6 +7,7 @@ class UserRepository {
       SELECT id, client_id, name, streak, actions, level, 
              daily_quote_count, games_played, tarot_draws, 
              last_login, food_points, food_streak, gender,
+             is_special_moodboard_allowed,weekly_spends
              today_expense, created_at
       FROM orange_users 
       ORDER BY created_at DESC
@@ -21,6 +22,7 @@ class UserRepository {
         SELECT id, client_id, name, streak, actions, level, 
                  daily_quote_count, games_played, tarot_draws, 
                  last_login, food_points, food_streak, gender,
+                 is_special_moodboard_allowed,weekly_spends
                  today_expense, created_at
         FROM orange_users
         WHERE id = $1
