@@ -79,14 +79,11 @@ const attachIpAndWeather = async (req, res, next) => {
 
     const ipData = await ipInfoResponse.json();
     const ipInfo = {
-      ip: clientIp,
       data: ipData,
     };
     if (ipData.loc) {
       const [lat, lon] = ipData.loc.split(",");
       const apiKey = "1ab3b1fb58d5738e290b8d859ff318e4";
-
-      // Fetch weather data
       const weatherRes = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
       );
@@ -109,7 +106,7 @@ const attachIpAndWeather = async (req, res, next) => {
     req.ipInfo = {
       ip: clientIp || "Unknown",
       error: "Could not fetch complete IP information",
-      ...(req.ipInfo || {}), // Preserve any partial data we might have
+      ...(req.ipInfo || {}), 
     };
   }
   next();
@@ -134,13 +131,19 @@ app.get("/health", (req, res) => {
 });
 
 // User endpoints
-app.get("/api/me", authenticateUser, attachIpAndWeather, async (req, res) => {
+app.get("/api/me", authenticateUser, async (req, res) => {
   res.json({
     success: true,
     user: req.user,
-    ipInfo: req.ipInfo,
   });
 });
+
+app.get("/api/me/context",attachIpAndWeather,async(req,res)=>{
+  res.json({
+    success: true,
+    ipInfo: req.ipInfo,
+  });
+})
 
 app.get("/api/users/:id", authenticateUser, async (req, res, next) => {
   try {
