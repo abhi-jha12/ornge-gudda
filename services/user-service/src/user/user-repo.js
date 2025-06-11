@@ -33,6 +33,22 @@ class UserRepository {
     }
     return result.rows[0];
   }
+  async getUserByClientId(clientId) {
+    const query = `
+        SELECT id, client_id, name, streak, actions, level, 
+                 daily_quote_count, games_played, tarot_draws, 
+                 last_login, food_points, food_streak, gender,
+                 is_special_moodboard_allowed,weekly_spends
+                  today_expense, created_at
+        FROM orange_users
+        WHERE client_id = $1
+        `;
+    const result = await this.pool.query(query, [clientId]);
+    if (result.rows.length === 0) {
+      throw new Error(`User with client ID ${clientId} not found`);
+    }
+    return result.rows[0];
+  }
 }
 
 module.exports = UserRepository;

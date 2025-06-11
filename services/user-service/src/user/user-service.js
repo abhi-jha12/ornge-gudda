@@ -20,6 +20,16 @@ class UserService {
       );
     }
   }
+  async getUserByClientId(clientId) {
+    try {
+      const user = await this.userRepository.getUserByClientId(clientId);
+      return user;
+    } catch (error) {
+      throw new Error(
+        `Error fetching user with client ID ${clientId}: ${error.message}`
+      );
+    }
+  }
 }
 module.exports = UserService;
 // This code defines a UserService class that provides methods to interact with user data

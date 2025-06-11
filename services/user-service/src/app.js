@@ -38,7 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 const authenticateUser = async (req, res, next) => {
   try {
-    const userId = req.cookies.userId || req.headers["x-user-id"];
+    const userId = req.cookies.clientId || req.headers["x-user-id"];
 
     if (!userId) {
       return res.status(401).json({
@@ -47,7 +47,7 @@ const authenticateUser = async (req, res, next) => {
       });
     }
 
-    const user = await userService.getUserById(userId);
+    const user = await userService.getUserByClientId(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
