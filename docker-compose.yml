@@ -7,8 +7,8 @@ services:
     ports:
       - "5672:5672"
     environment:
-      - RABBITMQ_DEFAULT_USER= ${RABBITMQ_DEFAULT_USER}
-      - RABBITMQ_DEFAULT_PASS= ${RABBITMQ_DEFAULT_PASS}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ./infrastructure/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
@@ -85,9 +85,9 @@ services:
       - RABBITMQ_PORT=${RABBITMQ_PORT}
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - RABBITMQ_VHOST=/
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - RABBITMQ_VHOST=/
       - JWT_SECRET=${JWT_SECRET}
     restart: unless-stopped
     healthcheck:
