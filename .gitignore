@@ -69,7 +69,6 @@ loki_data/
 logs/*.log
 
 # Environments
-.env
 .venv
 env/
 venv/

@@ -10,8 +10,7 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const DATABASE_URL =
-  process.env.DATABASE_URL ||
-  "postgres://default:hz5UOc2QjfuM@ep-purple-glitter-a1u2cptf-pooler.ap-southeast-1.aws.neon.tech/verceldb?sslmode=require";
+  process.env.DATABASE_URL;
 const pool = new Pool({ connectionString: DATABASE_URL });
 const initializeDatabase = async () => {
   try {
@@ -38,7 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 const authenticateUser = async (req, res, next) => {
   try {
-    const userId = req.cookies.clientId || req.headers["x-user-id"];
+    const userId = req.cookies.clientId || req.headers["x-client-id"];
 
     if (!userId) {
       return res.status(401).json({

@@ -10,19 +10,16 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3002;
-const DATABASE_URL =
-  process.env.DATABASE_URL ||
-  "postgres://default:hz5UOc2QjfuM@ep-purple-glitter-a1u2cptf-pooler.ap-southeast-1.aws.neon.tech/verceldb?sslmode=require";
-const VAPID_PUBLIC_KEY =
-  "BJGiGGiQ3z1BvTNujXCZblPCOV7dAGyi0A4lbtQT0qpRMblF3xt0L71ybVbUIIxqAZIpLeqTPlLyd7OiGj79LDU";
-const VAPID_PRIVATE_KEY = "QK8yWCuYRVf5rs6HVEyFmqxVuQQweV2No4FYBC87o30";
+const DATABASE_URL = process.env.DATABASE_URL;
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 
 // RabbitMQ configuration
 const RABBITMQ_CONFIG = {
-  host: process.env.RABBITMQ_HOST || "rabbitmq",
-  port: process.env.RABBITMQ_PORT || 5672,
-  username: process.env.RABBITMQ_USER || "admin",
-  password: process.env.RABBITMQ_PASSWORD || "password",
+  host: process.env.RABBITMQ_HOST ,
+  port: process.env.RABBITMQ_PORT ,
+  username: process.env.RABBITMQ_USER ,
+  password: process.env.RABBITMQ_PASSWORD ,
   vhost: process.env.RABBITMQ_VHOST || "/",
 };
 
