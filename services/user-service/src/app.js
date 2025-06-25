@@ -229,11 +229,6 @@ app.post("/api/me/subscription", async (req, res) => {
       subscriptionData
     );
     if (existingUser) {
-      res.cookie("clientId", existingUser.subscription.client_id, {
-        httpOnly: true,
-        maxAge: 60 * 60 * 24 * 365,
-        path: "/",
-      });
 
       return res.json({
         success: true,
