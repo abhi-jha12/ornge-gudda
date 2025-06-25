@@ -3,7 +3,7 @@ version: "3.8"
 services:
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: food-api-rabbitmq
+    container_name: ornge-rabbitmq
     ports:
       - "5672:5672"
     environment:
@@ -23,11 +23,11 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
-  food-api:
+  food-ml-service:
     build:
-      context: ./services/food-api
+      context: ./services/food-ml-service
       dockerfile: Dockerfile
-    container_name: food-recognition-api
+    container_name: food-ml-service
     environment:
       - ENV=production
       - ENABLE_METRICS=true
@@ -104,7 +104,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: food-api-nginx
+    container_name: ornge-nginx
     ports:
       - "80:80"
       - "443:443"
@@ -113,7 +113,9 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot
     depends_on:
-      - food-api
+      - food-ml-service
+      - user-service
+      - notification-service
       - grafana
       - prometheus
       - loki
@@ -124,7 +126,7 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
-    container_name: food-api-prometheus
+    container_name: ornge-prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml
@@ -140,7 +142,7 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    container_name: food-api-grafana
+    container_name: ornge-grafana
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
@@ -158,7 +160,7 @@ services:
 
   loki:
     image: grafana/loki:latest
-    container_name: food-api-loki
+    container_name: ornge-loki
     volumes:
       - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml
       - loki_data:/loki
@@ -172,7 +174,7 @@ services:
 
   promtail:
     image: grafana/promtail:latest
-    container_name: food-api-promtail
+    container_name: ornge-promtail
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
