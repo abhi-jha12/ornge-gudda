@@ -140,7 +140,7 @@ class UserRepository {
 
       const authValue = subscription.keys.auth;
       const query = `
-      SELECT id, client_id, push_subscription 
+      SELECT client_id, push_subscription 
       FROM orange_users 
       WHERE push_subscription->>'keys' IS NOT NULL 
       AND push_subscription->'keys'->>'auth' = $1

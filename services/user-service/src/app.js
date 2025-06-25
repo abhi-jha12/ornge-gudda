@@ -10,7 +10,8 @@ const { v4: uuidv4 } = require("uuid");
 require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL =
+  process.env.DATABASE_URL;
 const pool = new Pool({ connectionString: DATABASE_URL });
 const initializeDatabase = async () => {
   try {
@@ -227,9 +228,8 @@ app.post("/api/me/subscription", async (req, res) => {
     const existingUser = await userService.checkUserBySubscriptionAuth(
       subscriptionData
     );
-
     if (existingUser) {
-      res.cookie("clientId", existingUser.clientId, {
+      res.cookie("clientId", existingUser.subscription.client_id, {
         httpOnly: true,
         maxAge: 60 * 60 * 24 * 365,
         path: "/",
@@ -237,25 +237,26 @@ app.post("/api/me/subscription", async (req, res) => {
 
       return res.json({
         success: true,
-        subscription: existingUser.pushSubscription,
+        subscription: existingUser,
+      });
+    } else {
+      const client_id = uuidv4();
+      const newSubscription = await userService.createUserSubscription(
+        client_id,
+        subscriptionData
+      );
+
+      res.cookie("clientId", client_id, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 365,
+        path: "/",
+      });
+
+      res.json({
+        success: true,
+        subscription: newSubscription,
       });
     }
-    const client_id = uuidv4();
-    const newSubscription = await userService.createUserSubscription(
-      client_id,
-      subscriptionData
-    );
-
-    res.cookie("clientId", client_id, {
-      httpOnly: true,
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-    });
-
-    res.json({
-      success: true,
-      subscription: newSubscription,
-    });
   } catch (error) {
     console.error("Error handling subscription:", error);
     res.status(500).json({
