@@ -10,8 +10,7 @@ const { v4: uuidv4 } = require("uuid");
 require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DATABASE_URL =
-  process.env.DATABASE_URL;
+const DATABASE_URL = process.env.DATABASE_URL;
 const pool = new Pool({ connectionString: DATABASE_URL });
 const initializeDatabase = async () => {
   try {
@@ -218,7 +217,6 @@ app.get(
 
 app.post("/api/me/subscription", async (req, res) => {
   try {
-    const client_id = uuidv4();
     const subscriptionData = req.body;
     if (!subscriptionData || Object.keys(subscriptionData).length === 0) {
       return res.status(400).json({
@@ -226,24 +224,43 @@ app.post("/api/me/subscription", async (req, res) => {
         error: "No subscription data provided",
       });
     }
+    const existingUser = await userService.checkUserBySubscriptionAuth(
+      subscriptionData
+    );
+
+    if (existingUser) {
+      res.cookie("clientId", existingUser.clientId, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 365,
+        path: "/",
+      });
+
+      return res.json({
+        success: true,
+        subscription: existingUser.pushSubscription,
+      });
+    }
+    const client_id = uuidv4();
     const newSubscription = await userService.createUserSubscription(
       client_id,
       subscriptionData
     );
+
     res.cookie("clientId", client_id, {
       httpOnly: true,
       maxAge: 60 * 60 * 24 * 365,
       path: "/",
     });
+
     res.json({
       success: true,
       subscription: newSubscription,
     });
   } catch (error) {
-    console.error("Error creating subscription:", error);
+    console.error("Error handling subscription:", error);
     res.status(500).json({
       success: false,
-      error: "Internal server error while creating subscription",
+      error: "Internal server error while handling subscription",
     });
   }
 });

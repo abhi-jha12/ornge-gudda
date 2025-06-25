@@ -83,6 +83,18 @@ class UserService {
       );
     }
   }
+  async checkUserBySubscriptionAuth(subscription) {
+    try {
+      const user = await this.userRepository.checkUserBySubscriptionAuth(
+        subscription
+      );
+      return user;
+    } catch (error) {
+      throw new Error(
+        `Error checking user by subscription auth: ${error.message}`
+      );
+    }
+  }
 }
 module.exports = UserService;
 // This code defines a UserService class that provides methods to interact with user data

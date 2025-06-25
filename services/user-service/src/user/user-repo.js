@@ -132,6 +132,33 @@ class UserRepository {
     const result = await this.pool.query(query, [clientId, subscription]);
     return result.rows[0];
   }
+  async checkUserBySubscriptionAuth(subscription) {
+    try {
+      if (!subscription || !subscription.keys || !subscription.keys.auth) {
+        throw new Error("Invalid subscription format: missing auth key");
+      }
+
+      const authValue = subscription.keys.auth;
+      const query = `
+      SELECT client_id, push_subscription 
+      FROM orange_users 
+      WHERE push_subscription->>'keys' IS NOT NULL 
+      AND push_subscription->'keys'->>'auth' = $1
+    `;
+
+      const result = await this.pool.query(query, [authValue]);
+
+      if (result.rows.length === 0) {
+        return null; 
+      }
+      return {
+        clientId: result.rows[0].client_id,
+        pushSubscription: result.rows[0].push_subscription,
+      };
+    } catch (error) {
+      throw new Error(`Error checking subscription: ${error.message}`);
+    }
+  }
 }
 
 module.exports = UserRepository;
