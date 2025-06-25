@@ -123,6 +123,15 @@ class UserRepository {
     }
     return result.rows[0];
   }
+  async createUserSubscription(clientId, subscription) {
+    const query = `
+      INSERT INTO orange_users (client_id, push_subscription) 
+      VALUES ($1, $2)
+      RETURNING id, client_id, push_subscription
+    `;
+    const result = await this.pool.query(query, [clientId, subscription]);
+    return result.rows[0];
+  }
 }
 
 module.exports = UserRepository;

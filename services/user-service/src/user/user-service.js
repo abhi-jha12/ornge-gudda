@@ -69,6 +69,20 @@ class UserService {
       );
     }
   }
+  async createUserSubscription(clientId, subscriptionData) {
+    try {
+      const newSubscription =
+        await this.userRepository.createUserSubscription(
+          clientId,
+          subscriptionData
+        );
+      return newSubscription;
+    } catch (error) {
+      throw new Error(
+        `Error creating subscription for client ID ${clientId}: ${error.message}`
+      );
+    }
+  }
 }
 module.exports = UserService;
 // This code defines a UserService class that provides methods to interact with user data

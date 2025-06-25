@@ -6,6 +6,7 @@ const cookieParser = require("cookie-parser");
 const { Pool } = require("pg");
 const UserRepository = require("./user/user-repo");
 const UserService = require("./user/user-service");
+const { v4: uuidv4 } = require("uuid");
 require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -165,7 +166,7 @@ app.get("/api/me", authenticateUser, async (req, res) => {
 
 app.post("/api/me", authenticateUser, async (req, res, next) => {
   try {
-    const client_id = req.cookies.clientId || req.headers["x-client-id"];
+    const client_id = req.cookies.clientId || req.headers["x-client-id"]; //TODO: REDUNDANT OPERATION
     if (!client_id) {
       return res.status(401).json({
         success: false,
@@ -215,11 +216,43 @@ app.get(
   }
 );
 
-app.post("/api/me/subscription", authenticateUser, async (req, res, next) => {
+app.post("/api/me/subscription", async (req, res) => {
   try {
-    const client_id = req.cookies.clientId || req.headers["x-client-id"];
+    const client_id = uuidv4();
+    const subscriptionData = req.body;
+    if (!subscriptionData || Object.keys(subscriptionData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No subscription data provided",
+      });
+    }
+    const newSubscription = await userService.createUserSubscription(
+      client_id,
+      subscriptionData
+    );
+    res.cookie("clientId", client_id, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+    });
+    res.json({
+      success: true,
+      subscription: newSubscription,
+    });
+  } catch (error) {
+    console.error("Error creating subscription:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while creating subscription",
+    });
+  }
+});
+
+app.post("/api/me/resubscription", authenticateUser, async (req, res) => {
+  try {
+    let client_id = req.cookies.clientId || req.headers["x-client-id"];
     if (!client_id) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: "Authentication required",
       });
