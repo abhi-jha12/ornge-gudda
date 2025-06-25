@@ -140,18 +140,18 @@ class UserRepository {
 
       const authValue = subscription.keys.auth;
       const query = `
-      SELECT client_id, push_subscription 
+      SELECT id, client_id, push_subscription 
       FROM orange_users 
       WHERE push_subscription->>'keys' IS NOT NULL 
       AND push_subscription->'keys'->>'auth' = $1
-      RETURNING client_id, push_subscription
     `;
 
       const result = await this.pool.query(query, [authValue]);
 
       if (result.rows.length === 0) {
-        return null; 
+        return null;
       }
+
       return result.rows[0];
     } catch (error) {
       throw new Error(`Error checking subscription: ${error.message}`);
