@@ -37,16 +37,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 const authenticateUser = async (req, res, next) => {
   try {
-    const userId = req.cookies.clientId || req.headers["x-client-id"];
+    const client_id = req.cookies.clientId || req.headers["x-client-id"];
 
-    if (!userId) {
+    if (!client_id) {
       return res.status(401).json({
         success: false,
         error: "Authentication required",
       });
     }
 
-    const user = await userService.getUserByClientId(userId);
+    const user = await userService.getUserByClientId(client_id);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -58,6 +58,33 @@ const authenticateUser = async (req, res, next) => {
     next();
   } catch (error) {
     next(error);
+  }
+};
+
+const checkUserSubscription = async (req, res, next) => {
+  try {
+    const client_id = req.cookies.clientId || req.headers["x-client-id"];
+    if (!client_id) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+    const subs = await userService.getUserSubscription(client_id);
+    if (!subs) {
+      return res.status(404).json({
+        success: false,
+        error: "Subscription not found",
+      });
+    }
+    req.userSubscription = subs;
+    next();
+  } catch (error) {
+    console.error("Error in checkUserSubscription:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while checking user subscription",
+    });
   }
 };
 
@@ -104,7 +131,7 @@ const attachIpAndWeather = async (req, res, next) => {
     req.ipInfo = {
       ip: clientIp || "Unknown",
       error: "Could not fetch complete IP information",
-      ...(req.ipInfo || {}), 
+      ...(req.ipInfo || {}),
     };
   }
   next();
@@ -136,12 +163,90 @@ app.get("/api/me", authenticateUser, async (req, res) => {
   });
 });
 
-app.get("/api/me/context",attachIpAndWeather,async(req,res)=>{
+app.post("/api/me", authenticateUser, async (req, res, next) => {
+  try {
+    const client_id = req.cookies.clientId || req.headers["x-client-id"];
+    if (!client_id) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+    const userData = req.body;
+    if (!userData || Object.keys(userData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No user data provided for update",
+      });
+    }
+    const updatedUser = await userService.updateUserByClientId(
+      client_id,
+      userData
+    );
+    res.json({
+      success: true,
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while updating user",
+    });
+  }
+});
+
+app.get("/api/me/context", attachIpAndWeather, async (req, res) => {
   res.json({
     success: true,
     ipInfo: req.ipInfo,
   });
-})
+});
+
+app.get(
+  "/api/me/subscription",
+  authenticateUser,
+  checkUserSubscription,
+  (req, res) => {
+    res.json({
+      success: true,
+      subscription: req.userSubscription,
+    });
+  }
+);
+
+app.post("/api/me/subscription", authenticateUser, async (req, res, next) => {
+  try {
+    const client_id = req.cookies.clientId || req.headers["x-client-id"];
+    if (!client_id) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+    const subscriptionData = req.body;
+    if (!subscriptionData || Object.keys(subscriptionData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "No subscription data provided for update",
+      });
+    }
+    const updatedSubscription = await userService.updateUserSubscription(
+      client_id,
+      subscriptionData
+    );
+    res.json({
+      success: true,
+      subscription: updatedSubscription,
+    });
+  } catch (error) {
+    console.error("Error updating subscription:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while updating subscription",
+    });
+  }
+});
 
 app.get("/api/users/:id", authenticateUser, async (req, res, next) => {
   try {

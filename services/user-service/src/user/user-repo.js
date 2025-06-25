@@ -49,6 +49,80 @@ class UserRepository {
     }
     return result.rows[0];
   }
+  async updateUserByClientId(clientId, userData) {
+    const updatableFields = [
+      "name",
+      "streak",
+      "actions",
+      "level",
+      "daily_quote_count",
+      "games_played",
+      "tarot_draws",
+      "last_login",
+      "food_points",
+      "food_streak",
+      "gender",
+      "is_special_moodboard_allowed",
+      "weekly_spends",
+      "today_expense",
+    ];
+    const fieldsToUpdate = {};
+    for (const field of updatableFields) {
+      if (userData.hasOwnProperty(field) && userData[field] !== undefined) {
+        fieldsToUpdate[field] = userData[field];
+      }
+    }
+    if (Object.keys(fieldsToUpdate).length === 0) {
+      throw new Error("No valid fields provided for update");
+    }
+    const setClause = Object.keys(fieldsToUpdate)
+      .map((field, index) => `${field} = $${index + 2}`)
+      .join(", ");
+    const query = `
+    UPDATE orange_users 
+    SET ${setClause}
+    WHERE client_id = $1
+    RETURNING id, client_id, name, streak, actions, level, 
+              daily_quote_count, games_played, tarot_draws, 
+              last_login, food_points, food_streak, gender,
+              is_special_moodboard_allowed, weekly_spends,
+              today_expense, created_at
+  `;
+    const params = [clientId, ...Object.values(fieldsToUpdate)];
+
+    try {
+      const result = await this.pool.query(query, params);
+
+      if (result.rows.length === 0) {
+        throw new Error(`User with client ID ${clientId} not found`);
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      throw new Error(`Failed to update user: ${error.message}`);
+    }
+  }
+  async getUserSubscription(clientId) {
+    const query = `SELECT push_subscription FROM orange_users WHERE client_id = $1`;
+    const result = await this.pool.query(query, [clientId]);
+    if (result.rows.length === 0) {
+      throw new Error(`User with client ID ${clientId} not found`);
+    }
+    return result.rows[0].push_subscription;
+  }
+  async updateUserSubscription(clientId, subscription) {
+    const query = `
+      UPDATE orange_users 
+      SET push_subscription = $1 
+      WHERE client_id = $2
+      RETURNING id, client_id, push_subscription
+    `;
+    const result = await this.pool.query(query, [subscription, clientId]);
+    if (result.rows.length === 0) {
+      throw new Error(`User with client ID ${clientId} not found`);
+    }
+    return result.rows[0];
+  }
 }
 
 module.exports = UserRepository;
