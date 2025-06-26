@@ -5,7 +5,7 @@ const morgan = require("morgan");
 const path = require("path");
 const { Pool } = require("pg");
 const webpush = require("web-push");
-const amqp = require("amqplib");
+const promClient = require('prom-client');
 require("dotenv").config();
 
 const app = express();
@@ -13,7 +13,32 @@ const PORT = process.env.PORT || 3003;
 const DATABASE_URL = process.env.DATABASE_URL;
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const register = new promClient.Registry();
+promClient.collectDefaultMetrics({
+  register,
+  prefix: 'badal_service_',
+});
 
+const httpRequestsTotal = new promClient.Counter({
+  name: 'badal_service_http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code'],
+  registers: [register]
+});
+
+const httpRequestDuration = new promClient.Histogram({
+  name: 'badal_service_http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.1, 0.5, 1, 2, 5],
+  registers: [register]
+});
+
+const databaseConnectionsActive = new promClient.Gauge({
+  name: 'badal_service_database_connections_active',
+  help: 'Number of active database connections',
+  registers: [register]
+});
 // RabbitMQ configuration
 const RABBITMQ_CONFIG = {
   host: process.env.RABBITMQ_HOST ,
@@ -37,44 +62,20 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   );
 }
 let rabbitConnection = null;
-let rabbitChannel = null;
 
-async function connectToRabbitMQ() {
-  try {
-    rabbitConnection = await amqp.connect(RABBITMQ_URL);
-    rabbitChannel = await rabbitConnection.createChannel();
-    const queueName = "notification_queue";
-    await rabbitChannel.assertQueue(queueName, {
-      durable: true,
-    });
-    console.log(`📥 Listening for messages on queue: ${queueName}`);
-
-    // Set up consumer
-    rabbitChannel.consume(queueName, async (message) => {
-      if (message) {
-        try {
-          const notificationData = JSON.parse(message.content.toString());
-          await processNotification(notificationData);
-          rabbitChannel.ack(message);
-        } catch (error) {
-          console.error("❌ Error processing notification message:", error);
-          rabbitChannel.nack(message, false, true);
-        }
-      }
-    });
-    rabbitConnection.on("error", (err) => {
-      console.error("RabbitMQ connection error:", err);
-    });
-
-    rabbitConnection.on("close", () => {
-      console.log("RabbitMQ connection closed");
-      setTimeout(connectToRabbitMQ, 5000);
-    });
-  } catch (error) {
-    console.error("❌ Failed to connect to RabbitMQ:", error);
-    setTimeout(connectToRabbitMQ, 5000);
-  }
-}
+const metricsMiddleware = (req, res, next) => {
+  const startTime = Date.now();
+  
+  res.on('finish', () => {
+    const duration = (Date.now() - startTime) / 1000;
+    const route = req.route ? req.route.path : req.path;
+    
+    httpRequestsTotal.labels(req.method, route, res.statusCode).inc();
+    httpRequestDuration.labels(req.method, route, res.statusCode).observe(duration);
+  });
+  
+  next();
+};
 
 
 // Test database connection
@@ -83,6 +84,7 @@ pool.connect((err, client, release) => {
     console.error("❌ Database connection failed:", err.message);
   } else {
     console.log("✅ Connected to NeonDB PostgreSQL");
+    databaseConnectionsActive.set(pool.totalCount);
     release();
   }
 });
@@ -93,10 +95,18 @@ app.use(cors());
 app.use(morgan("combined"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(metricsMiddleware);
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, "..", "public")));
-
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (error) {
+    res.status(500).end(error);
+  }
+});
 // Routes
 app.get("/", (req, res) => {
   res.json({
@@ -136,19 +146,11 @@ app.use("*", (req, res) => {
 // Server startup
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Orange Food service running on port ${PORT}`);
-  console.log(`📊 Health: http://localhost:${PORT}/health`);
-  connectToRabbitMQ()
 
 });
 
 const gracefulShutdown = async () => {
   console.log("Shutting down gracefully...");
-  if (rabbitChannel) {
-    await rabbitChannel.close();
-  }
-  if (rabbitConnection) {
-    await rabbitConnection.close();
-  }
 
   pool.end(() => {
     console.log("Database connections closed");

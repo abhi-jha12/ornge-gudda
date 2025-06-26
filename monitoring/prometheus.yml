@@ -1,22 +1,63 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    cluster: "ornge-production"
+    environment: "production"
 
 rule_files:
   - "/etc/prometheus/alert_rules.yml"
 
 scrape_configs:
-  - job_name: 'food-ml-service'
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
     static_configs:
-      - targets: ['food-ml-service:8000']
-    metrics_path: '/metrics'
+      - targets: ["localhost:9090"]
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+  - job_name: "food-ml-service"
+    static_configs:
+      - targets: ["food-ml-service:8000"]
+    metrics_path: "/metrics"
     scrape_interval: 10s
     scrape_timeout: 5s
     metric_relabel_configs:
       - source_labels: [__name__]
-        regex: 'food_classifier_.*'
+        regex: "food_classifier_.*"
         action: keep
+    relabel_configs:
+      - target_label: service
+        replacement: "food-ml-service"
 
-  - job_name: 'prometheus'
+  # Badal Service
+  - job_name: "badal-service"
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ["badal-service:3003"]
+    metrics_path: "/metrics"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    relabel_configs:
+      - target_label: service
+        replacement: "badal-service"
+
+  # Cash Kundi Service
+  - job_name: "cash-kundi-service"
+    static_configs:
+      - targets: ["cash-kundi-service:3004"]
+    metrics_path: "/metrics"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    relabel_configs:
+      - target_label: service
+        replacement: "cash-kundi-service"
+
+  # RabbitMQ Management Plugin Metrics
+  - job_name: "rabbitmq"
+    static_configs:
+      - targets: ["ornge-rabbitmq:15692"]
+    metrics_path: "/metrics"
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    relabel_configs:
+      - target_label: service
+        replacement: "rabbitmq"
