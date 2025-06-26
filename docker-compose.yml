@@ -197,7 +197,6 @@ services:
     container_name: ornge-grafana
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
@@ -205,8 +204,6 @@ services:
       - GF_SERVER_ROOT_URL=https://ornge.site/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SERVER_DOMAIN=ornge.site
-      - GF_SERVER_ENABLE_GZIP=true
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     networks:
       - monitoring
     restart: unless-stopped
