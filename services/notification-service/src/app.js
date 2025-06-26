@@ -13,8 +13,6 @@ const PORT = process.env.PORT || 3002;
 const DATABASE_URL = process.env.DATABASE_URL;
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
-
-// RabbitMQ configuration
 const RABBITMQ_CONFIG = {
   host: process.env.RABBITMQ_HOST ,
   port: process.env.RABBITMQ_PORT ,
@@ -222,7 +220,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Single notification endpoint
 app.post("/api/send-notification", async (req, res) => {
   try {
     const { client_id, title, body, type } = req.body;
@@ -233,8 +230,6 @@ app.post("/api/send-notification", async (req, res) => {
         error: "Missing required fields: client_id, title, body",
       });
     }
-
-    // Queue the notification
     await queueNotification(client_id, title, body, type);
 
     res.json({
@@ -251,7 +246,6 @@ app.post("/api/send-notification", async (req, res) => {
   }
 });
 
-// Bulk notification endpoint
 app.post("/api/send-bulk-notifications", async (req, res) => {
   try {
     const { client_ids, title, body, type } = req.body;
@@ -313,7 +307,6 @@ app.post("/api/send-bulk-notifications", async (req, res) => {
   }
 });
 
-// Direct send notification endpoint
 app.post("/api/send-notification-direct", async (req, res) => {
   try {
     const { client_id, title, body, type } = req.body;
@@ -341,7 +334,6 @@ app.post("/api/send-notification-direct", async (req, res) => {
   }
 });
 
-// Error handling
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({
@@ -357,7 +349,6 @@ app.use("*", (req, res) => {
   });
 });
 
-// Server startup
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Orange Notification service running on port ${PORT}`);
   console.log(`📊 Health: http://localhost:${PORT}/health`);

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from .config import settings
 from .routers import health, predict, users
-from .services.rabbitmq_service import rabbitmq_service  
+from .services.model_service import model_service
 import logging
 from fastapi.staticfiles import StaticFiles
 
@@ -57,16 +57,13 @@ def create_app():
 
     @app.on_event("startup")
     async def startup_event():
-        # Start RabbitMQ consumer thread
-        rabbitmq_service.start_consumer_thread()
-        logger.info("RabbitMQ notification consumer thread started")
-
+        logger.info("Starting Food Classifier API...")
+        await model_service.load_model()
         logger.info("Food Classifier API started successfully")
 
     @app.on_event("shutdown")
     async def shutdown_event():
-        rabbitmq_service.close()
-        logger.info("RabbitMQ connections closed gracefully")
+        logger.info("Connections closed gracefully")
 
     return app
 
