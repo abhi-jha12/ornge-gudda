@@ -1,7 +1,7 @@
 {
-  "name": "badal-service",
+  "name": "cash-kundi-service",
   "version": "1.0.0",
-  "description": "Food service API",
+  "description": "Finance Tracker service API",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
@@ -23,7 +23,7 @@
   "keywords": [
     "express",
     "api",
-    "badal-service"
+    "cash-kundi-service"
   ],
   "author": "",
   "license": "ISC"

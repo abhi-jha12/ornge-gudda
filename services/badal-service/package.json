@@ -1,7 +1,7 @@
 {
-  "name": "badal-service",
+  "name": "notification-service",
   "version": "1.0.0",
-  "description": "Food service API",
+  "description": "Notification service API",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
@@ -23,7 +23,7 @@
   "keywords": [
     "express",
     "api",
-    "badal-service"
+    "notification-service"
   ],
   "author": "",
   "license": "ISC"
