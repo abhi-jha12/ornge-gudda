@@ -17,18 +17,18 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const register = new promClient.Registry();
 promClient.collectDefaultMetrics({
   register,
-  prefix: "badal_service_",
+  prefix: "cash_kundi_",
 });
 
 const httpRequestsTotal = new promClient.Counter({
-  name: "badal_service_http_requests_total",
+  name: "cash_kundi_http_requests_total",
   help: "Total number of HTTP requests",
   labelNames: ["method", "route", "status_code"],
   registers: [register],
 });
 
 const httpRequestDuration = new promClient.Histogram({
-  name: "badal_service_http_request_duration_seconds",
+  name: "cash_kundi_http_request_duration_seconds",
   help: "Duration of HTTP requests in seconds",
   labelNames: ["method", "route", "status_code"],
   buckets: [0.1, 0.5, 1, 2, 5],
@@ -36,7 +36,7 @@ const httpRequestDuration = new promClient.Histogram({
 });
 
 const databaseConnectionsActive = new promClient.Gauge({
-  name: "badal_service_database_connections_active",
+  name: "cash_kundi_database_connections_active",
   help: "Number of active database connections",
   registers: [register],
 });
