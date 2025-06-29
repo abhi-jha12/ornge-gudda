@@ -128,6 +128,9 @@ class FridgeRepository {
         newQuantity += itemUpdate.quantity || 0;
         break;
       case "remove":
+        scoreChange = -100;
+        newQuantity = Math.max(0, newQuantity - (itemUpdate.quantity || 0));
+        break;
       case "consume":
         scoreChange = -15;
         newQuantity = Math.max(0, newQuantity - (itemUpdate.quantity || 0));
