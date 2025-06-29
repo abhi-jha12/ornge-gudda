@@ -5,51 +5,43 @@ const morgan = require("morgan");
 const path = require("path");
 const { Pool } = require("pg");
 const webpush = require("web-push");
-const promClient = require('prom-client');
+const promClient = require("prom-client");
+const FridgeRepository = require("./my-fridge/my-fridge-repo");
+const FridgeService = require("./my-fridge/fridge-service");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3003;
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL =
+  process.env.DATABASE_URL;
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const register = new promClient.Registry();
 promClient.collectDefaultMetrics({
   register,
-  prefix: 'badal_service_',
+  prefix: "badal_service_",
 });
 
 const httpRequestsTotal = new promClient.Counter({
-  name: 'badal_service_http_requests_total',
-  help: 'Total number of HTTP requests',
-  labelNames: ['method', 'route', 'status_code'],
-  registers: [register]
+  name: "badal_service_http_requests_total",
+  help: "Total number of HTTP requests",
+  labelNames: ["method", "route", "status_code"],
+  registers: [register],
 });
 
 const httpRequestDuration = new promClient.Histogram({
-  name: 'badal_service_http_request_duration_seconds',
-  help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route', 'status_code'],
+  name: "badal_service_http_request_duration_seconds",
+  help: "Duration of HTTP requests in seconds",
+  labelNames: ["method", "route", "status_code"],
   buckets: [0.1, 0.5, 1, 2, 5],
-  registers: [register]
+  registers: [register],
 });
 
 const databaseConnectionsActive = new promClient.Gauge({
-  name: 'badal_service_database_connections_active',
-  help: 'Number of active database connections',
-  registers: [register]
+  name: "badal_service_database_connections_active",
+  help: "Number of active database connections",
+  registers: [register],
 });
-// RabbitMQ configuration
-const RABBITMQ_CONFIG = {
-  host: process.env.RABBITMQ_HOST ,
-  port: process.env.RABBITMQ_PORT ,
-  username: process.env.RABBITMQ_USER ,
-  password: process.env.RABBITMQ_PASSWORD ,
-  vhost: process.env.RABBITMQ_VHOST || "/",
-};
-
-const RABBITMQ_URL = `amqp://${RABBITMQ_CONFIG.username}:${RABBITMQ_CONFIG.password}@${RABBITMQ_CONFIG.host}:${RABBITMQ_CONFIG.port}${RABBITMQ_CONFIG.vhost}`;
-
 const pool = new Pool({
   connectionString: DATABASE_URL,
 });
@@ -65,18 +57,19 @@ let rabbitConnection = null;
 
 const metricsMiddleware = (req, res, next) => {
   const startTime = Date.now();
-  
-  res.on('finish', () => {
+
+  res.on("finish", () => {
     const duration = (Date.now() - startTime) / 1000;
     const route = req.route ? req.route.path : req.path;
-    
+
     httpRequestsTotal.labels(req.method, route, res.statusCode).inc();
-    httpRequestDuration.labels(req.method, route, res.statusCode).observe(duration);
+    httpRequestDuration
+      .labels(req.method, route, res.statusCode)
+      .observe(duration);
   });
-  
+
   next();
 };
-
 
 // Test database connection
 pool.connect((err, client, release) => {
@@ -88,6 +81,9 @@ pool.connect((err, client, release) => {
     release();
   }
 });
+//intialise fridge service
+const fridgeRepository = new FridgeRepository(pool);
+const fridgeService = new FridgeService(fridgeRepository);
 
 // Middleware
 app.use(helmet());
@@ -99,9 +95,9 @@ app.use(metricsMiddleware);
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, "..", "public")));
-app.get('/metrics', async (req, res) => {
+app.get("/metrics", async (req, res) => {
   try {
-    res.set('Content-Type', register.contentType);
+    res.set("Content-Type", register.contentType);
     res.end(await register.metrics());
   } catch (error) {
     res.status(500).end(error);
@@ -122,10 +118,156 @@ app.get("/health", (req, res) => {
     service: "ornge-badal-service",
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
-    rabbitmq: rabbitConnection ? "connected" : "disconnected",
   });
 });
 
+// Import and use the fridge service
+app.post("/fridge", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+    const fridgeName = req.body.name;
+    if (!fridgeName) {
+      return res.status(400).json({
+        success: false,
+        error: "Fridge name is required",
+      });
+    }
+    const fridge = await fridgeService.createFridge(clientId, fridgeName);
+    res.json({
+      success: true,
+      fridge,
+    });
+  } catch (error) {
+    console.error("Error creating fridge:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+app.get("/fridge", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+    const fridge = await fridgeService.getFridge(clientId);
+    if (!fridge) {
+      return res.status(404).json({
+        success: false,
+        error: "Fridge not found",
+      });
+    }
+    res.json({
+      success: true,
+      fridge,
+    });
+  } catch (error) {
+    console.error("Error fetching fridge:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+app.get("/fridge/items", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+    const fridgeItems = await fridgeService.getFridgeItems(clientId);
+    res.json({
+      success: true,
+      fridgeItems,
+    });
+  } catch (error) {
+    console.error("Error fetching fridge items:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+app.post("/fridge/items", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+    const item = req.body;
+    if (
+      !item ||
+      !item.name ||
+      !item.category ||
+      !item.quantity ||
+      !item.expiry_date
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Item details are incomplete",
+      });
+    }
+    const newItem = await fridgeService.addFridgeItem(clientId, item);
+    res.json({
+      success: true,
+      item: newItem,
+    });
+  } catch (error) {
+    console.error("Error adding fridge item:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+app.put("/fridge/items", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+    const  itemUpdate  = req.body;
+    if (!itemUpdate || !itemUpdate.id || !itemUpdate.operation_type) {
+      return res.status(400).json({
+        success: false,
+        error: "Item update details are incomplete",
+      });
+    }
+    const updatedItem = await fridgeService.updateFridgeItem(
+      clientId,
+      itemUpdate
+    );
+    res.json({
+      success: true,
+      item: updatedItem,
+    });
+  } catch (error) {
+    console.error("Error updating fridge item:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -146,7 +288,6 @@ app.use("*", (req, res) => {
 // Server startup
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Orange Food service running on port ${PORT}`);
-
 });
 
 const gracefulShutdown = async () => {
