@@ -17,7 +17,7 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3003;
 const DATABASE_URL =
-  process.env.DATABASE_URL||"postgres://default:hz5UOc2QjfuM@ep-purple-glitter-a1u2cptf-pooler.ap-southeast-1.aws.neon.tech/verceldb?sslmode=require";
+  process.env.DATABASE_URL;
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const register = new promClient.Registry();
