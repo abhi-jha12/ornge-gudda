@@ -155,8 +155,8 @@ class FridgeRepository {
       quantity = $2,
       score = $3,
       is_shopping_item = $4,
-      scanner_id = $6
-      expiry_date = COALESCE($5, expiry_date)
+      scanner_id = $5,
+      expiry_date = COALESCE($6, expiry_date)
     WHERE id = $1
     RETURNING *
   `;
