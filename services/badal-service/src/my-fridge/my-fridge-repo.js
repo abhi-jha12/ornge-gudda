@@ -131,11 +131,11 @@ class FridgeRepository {
         break;
       case "remove":
         scoreChange = -100;
-        newQuantity = Math.max(0, newQuantity);
+        newQuantity = Math.max(0, itemUpdate.quantity);
         break;
       case "consume":
         scoreChange = -15;
-        newQuantity = Math.max(0, newQuantity);
+        newQuantity = Math.max(0, itemUpdate.quantity);
         break;
       default:
         scoreChange = 0;
@@ -166,7 +166,7 @@ class FridgeRepository {
       newQuantity,
       newScore,
       shouldBeShoppingItem,
-      currentItem.scanner_id,
+      itemUpdate.scanner_id,
       itemUpdate.expiry_date,
     ];
 
