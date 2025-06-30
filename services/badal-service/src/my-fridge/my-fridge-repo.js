@@ -23,7 +23,8 @@ class FridgeRepository {
       quantity,
       expiry_date,
       added_date,
-      is_shopping_item
+      is_shopping_item,
+      scanner_id
     FROM fridge_items
     WHERE fridge_id = $1
   `;
@@ -47,8 +48,8 @@ class FridgeRepository {
     const fridgeId = result1.rows[0].id;
 
     const query2 = `
-    INSERT INTO fridge_items (fridge_id, name, category, quantity, expiry_date, added_date, is_shopping_item)
-    VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+    INSERT INTO fridge_items (fridge_id, name, category, quantity, expiry_date, added_date, is_shopping_item,scanner_id)
+    VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
     RETURNING *
   `;
 
@@ -59,6 +60,7 @@ class FridgeRepository {
       item.quantity,
       item.expiry_date,
       item.is_shopping_item || false,
+      item.scanner_id
     ];
 
     const result2 = await this.pool.query(query2, values);
@@ -121,19 +123,19 @@ class FridgeRepository {
     switch (operationType) {
       case "add":
         scoreChange = 20;
-        newQuantity += itemUpdate.quantity || 0;
+        newQuantity = itemUpdate.quantity || 0;
         break;
       case "restock":
         scoreChange = 100;
-        newQuantity += itemUpdate.quantity || 0;
+        newQuantity = itemUpdate.quantity || 0;
         break;
       case "remove":
         scoreChange = -100;
-        newQuantity = Math.max(0, newQuantity - (itemUpdate.quantity || 0));
+        newQuantity = Math.max(0, newQuantity);
         break;
       case "consume":
         scoreChange = -15;
-        newQuantity = Math.max(0, newQuantity - (itemUpdate.quantity || 0));
+        newQuantity = Math.max(0, newQuantity);
         break;
       default:
         scoreChange = 0;
@@ -153,6 +155,7 @@ class FridgeRepository {
       quantity = $2,
       score = $3,
       is_shopping_item = $4,
+      scanner_id = $6
       expiry_date = COALESCE($5, expiry_date)
     WHERE id = $1
     RETURNING *
@@ -163,6 +166,7 @@ class FridgeRepository {
       newQuantity,
       newScore,
       shouldBeShoppingItem,
+      currentItem.scanner_id,
       itemUpdate.expiry_date,
     ];
 
