@@ -60,7 +60,7 @@ class FridgeRepository {
       item.quantity,
       item.expiry_date,
       item.is_shopping_item || false,
-      item.scanner_id
+      item.scanner_id,
     ];
 
     const result2 = await this.pool.query(query2, values);
@@ -175,6 +175,60 @@ class FridgeRepository {
       success: true,
       fridgeItems: result.rows[0],
     };
+  }
+
+  async getExpiringItems(daysThreshold = 2) {
+    const query = `
+    SELECT 
+      f.client_ids,
+      fi.name,
+      fi.expiry_date,
+      fi.quantity,
+      fi.category
+    FROM fridge_items fi
+    JOIN fridges f ON fi.fridge_id = f.id
+    WHERE fi.expiry_date <= NOW() + INTERVAL '${daysThreshold} days'
+    AND fi.expiry_date > NOW()
+    AND fi.quantity > 0
+  `;
+
+    const result = await this.pool.query(query);
+    return result.rows;
+  }
+
+  async getLowStockItems(threshold = 1) {
+    const query = `
+    SELECT 
+      f.client_ids,
+      fi.name,
+      fi.quantity,
+      fi.category
+    FROM fridge_items fi
+    JOIN fridges f ON fi.fridge_id = f.id
+    WHERE fi.quantity <= $1
+    AND fi.quantity > 0
+  `;
+
+    const result = await this.pool.query(query, [threshold]);
+    return result.rows;
+  }
+
+  async getExpiredItems() {
+    const query = `
+    SELECT 
+      f.client_ids,
+      fi.name,
+      fi.expiry_date,
+      fi.quantity,
+      fi.category
+    FROM fridge_items fi
+    JOIN fridges f ON fi.fridge_id = f.id
+    WHERE fi.expiry_date < NOW()
+    AND fi.quantity > 0
+  `;
+
+    const result = await this.pool.query(query);
+    return result.rows;
   }
 }
 

@@ -8,12 +8,16 @@ const webpush = require("web-push");
 const promClient = require("prom-client");
 const FridgeRepository = require("./my-fridge/my-fridge-repo");
 const FridgeService = require("./my-fridge/fridge-service");
+const NotificationService = require("./my-fridge/notification-service")
+const NotificationLogic = require("./my-fridge/notification-logic")
+const NotificationScheduler = require("./my-fridge/scheduler")
+
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3003;
 const DATABASE_URL =
-  process.env.DATABASE_URL;
+  process.env.DATABASE_URL||"postgres://default:hz5UOc2QjfuM@ep-purple-glitter-a1u2cptf-pooler.ap-southeast-1.aws.neon.tech/verceldb?sslmode=require";
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const register = new promClient.Registry();
@@ -53,7 +57,6 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
     VAPID_PRIVATE_KEY
   );
 }
-let rabbitConnection = null;
 
 const metricsMiddleware = (req, res, next) => {
   const startTime = Date.now();
@@ -84,6 +87,10 @@ pool.connect((err, client, release) => {
 //intialise fridge service
 const fridgeRepository = new FridgeRepository(pool);
 const fridgeService = new FridgeService(fridgeRepository);
+
+const notificationService = new NotificationService();
+const notificationLogic = new NotificationLogic(fridgeRepository, notificationService);
+const scheduler = new NotificationScheduler(notificationLogic);
 
 // Middleware
 app.use(helmet());
@@ -288,11 +295,12 @@ app.use("*", (req, res) => {
 // Server startup
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Orange Food service running on port ${PORT}`);
+  scheduler.start();
 });
 
 const gracefulShutdown = async () => {
   console.log("Shutting down gracefully...");
-
+  scheduler.stop();
   pool.end(() => {
     console.log("Database connections closed");
     process.exit(0);
