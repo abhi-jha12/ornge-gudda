@@ -45,5 +45,29 @@ class FridgeService {
       throw new Error(`Error updating fridge item: ${error.message}`);
     }
   }
+  async getExpiredItems() {
+    try {
+      const result = await this.fridgeRepository.getExpiredItems();
+      return result;
+    } catch (error) {
+      throw new Error(`Error getting expired items: ${error.message}`);
+    }
+  }
+  async getExpiringItems(days) {
+    try {
+      const result = await this.fridgeRepository.getExpiringItems(days);
+      return result;
+    } catch (error) {
+      throw new Error(`Error getting expiring items: ${error.message}`);
+    }
+  }
+  async getLowStockItems(threshold){
+    try {
+      const result = await this.fridgeRepository.getLowStockItems(threshold);
+      return result;
+    } catch (error) {
+      throw new Error(`Error getting low stock items: ${error.message}`);
+    }
+  }
 }
 module.exports = FridgeService;

@@ -8,9 +8,11 @@ const webpush = require("web-push");
 const promClient = require("prom-client");
 const FridgeRepository = require("./my-fridge/my-fridge-repo");
 const FridgeService = require("./my-fridge/fridge-service");
-const NotificationService = require("./my-fridge/notification-service")
-const NotificationLogic = require("./my-fridge/notification-logic")
-const NotificationScheduler = require("./my-fridge/scheduler")
+const NotificationService = require("./my-fridge/notification-service");
+const NotificationLogic = require("./my-fridge/notification-logic");
+const NotificationScheduler = require("./my-fridge/scheduler");
+const FoodService = require("./food-entry/food-service");
+const FoodEntryRepository = require("./food-entry/food-entry-repo");
 
 require("dotenv").config();
 
@@ -87,9 +89,14 @@ pool.connect((err, client, release) => {
 //intialise fridge service
 const fridgeRepository = new FridgeRepository(pool);
 const fridgeService = new FridgeService(fridgeRepository);
+const foodEntryRepository = new FoodEntryRepository(pool);
+const foodService = new FoodService(foodEntryRepository);
 
 const notificationService = new NotificationService();
-const notificationLogic = new NotificationLogic(fridgeRepository, notificationService);
+const notificationLogic = new NotificationLogic(
+  fridgeRepository,
+  notificationService
+);
 const scheduler = new NotificationScheduler(notificationLogic);
 
 // Middleware
@@ -252,7 +259,7 @@ app.put("/fridge/items", async (req, res) => {
         error: "Client ID is required",
       });
     }
-    const  itemUpdate  = req.body;
+    const itemUpdate = req.body;
     if (!itemUpdate || !itemUpdate.id || !itemUpdate.operation_type) {
       return res.status(400).json({
         success: false,
@@ -269,6 +276,229 @@ app.put("/fridge/items", async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating fridge item:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+// GET food entries by date
+app.get("/food/entries", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+
+    const { date, start_date, end_date, category } = req.query;
+
+    if (!date && (!start_date || !end_date)) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Either date or date range (start_date and end_date) is required",
+      });
+    }
+
+    let foodEntries;
+
+    if (date && category) {
+      foodEntries = await foodService.getUserFoodEntriesByDateAndCategory(
+        clientId,
+        date,
+        category
+      );
+    } else if (date) {
+      foodEntries = await foodService.getUserFoodEntriesByDate(clientId, date);
+    } else {
+      foodEntries = await foodService.getUserFoodEntriesByDateRange(
+        clientId,
+        start_date,
+        end_date
+      );
+    }
+
+    res.json({
+      success: true,
+      foodEntries,
+    });
+  } catch (error) {
+    console.error("Error fetching food entries:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+app.post("/food/entries", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+
+    const { date, meal_type, food_category, food_name, calories, mood_tag } =
+      req.body;
+
+    if (
+      !date ||
+      !meal_type ||
+      !food_category ||
+      !food_name ||
+      calories === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Required fields: date, meal_type, food_category, food_name, calories",
+      });
+    }
+
+    const newEntry = await foodService.createUserFoodEntry(
+      clientId,
+      date,
+      meal_type,
+      food_category,
+      food_name,
+      calories,
+      mood_tag
+    );
+
+    res.json({
+      success: true,
+      foodEntry: newEntry,
+    });
+  } catch (error) {
+    console.error("Error creating food entry:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+app.get("/food/dayEntries", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        error: "Date is required",
+      });
+    }
+
+    const totalCal = await foodService.getTotalCaloriesByDate(clientId, date);
+    const foodEntries = await foodService.getWeeklyEntries(clientId);
+
+    const meals = foodEntries.map((entry) => ({
+      id: entry.id,
+      type: entry.meal_type,
+      name: entry.food_name,
+      calories: entry.calories,
+      category: entry.food_category,
+      emoji: entry.emoji,
+      moodTag: entry.mood_tag,
+    }));
+
+    const dayEntries = [
+      {
+        date,
+        totalCalories: totalCal.totalCalories,
+        entriesCount: totalCal.entriesCount,
+        meals,
+      },
+    ];
+
+    res.json({
+      success: true,
+      dayEntries,
+    });
+  } catch (error) {
+    console.error("Error fetching food stats:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+app.get("/food/weeklyStats", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+
+    const weeklyStats = await foodService.getWeeklyStats(clientId);
+
+    res.json({
+      success: true,
+      weeklyStats,
+    });
+  } catch (error) {
+    console.error("Error fetching food stats:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
+});
+
+app.put("/food/entries/:id", async (req, res) => {
+  try {
+    const clientId = req.headers["x-client-id"] || req.cookies.clientId;
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        error: "Client ID is required",
+      });
+    }
+
+    const { id } = req.params;
+    const updates = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: "Food entry ID is required",
+      });
+    }
+
+    if (!updates || Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Update data is required",
+      });
+    }
+
+    const updatedEntry = await foodService.updateUserFoodEntry(
+      id,
+      clientId,
+      updates
+    );
+
+    res.json({
+      success: true,
+      foodEntry: updatedEntry,
+    });
+  } catch (error) {
+    console.error("Error updating food entry:", error);
     res.status(500).json({
       success: false,
       error: "Internal server error",
