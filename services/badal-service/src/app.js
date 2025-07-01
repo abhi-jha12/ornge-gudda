@@ -19,7 +19,8 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3003;
 const DATABASE_URL =
-  process.env.DATABASE_URL;
+  process.env.DATABASE_URL ||
+  "postgres://default:hz5UOc2QjfuM@ep-purple-glitter-a1u2cptf-pooler.ap-southeast-1.aws.neon.tech/verceldb?sslmode=require";
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const register = new promClient.Registry();
@@ -400,26 +401,35 @@ app.get("/food/dayEntries", async (req, res) => {
         error: "Date is required",
       });
     }
-
-    const totalCal = await foodService.getTotalCaloriesByDate(clientId, date);
     const foodEntries = await foodService.getWeeklyEntries(clientId);
-    const meals = foodEntries.map((entry) => ({
-      id: entry.id,
-      type: entry.meal_type,
-      name: entry.food_name,
-      calories: entry.calories,
-      category: entry.food_category,
-      emoji: entry.emoji,
-      moodTag: entry.mood_tag,
-    }));
+    const entriesByDate = {};
 
-    const dayEntries = [
-      {
-        date,
-        totalCalories: totalCal,
-        meals,
-      },
-    ];
+    foodEntries.forEach((entry) => {
+      const entryDate = entry.date;
+      if (!entriesByDate[entryDate]) {
+        entriesByDate[entryDate] = {
+          meals: [],
+          totalCalories: 0,
+        };
+      }
+
+      entriesByDate[entryDate].meals.push({
+        id: entry.id,
+        type: entry.meal_type,
+        name: entry.food_name,
+        calories: entry.calories,
+        category: entry.food_category,
+        emoji: entry.emoji,
+        moodTag: entry.mood_tag,
+      });
+
+      entriesByDate[entryDate].totalCalories += entry.calories;
+    });
+    const dayEntries = Object.keys(entriesByDate).map((date) => ({
+      date,
+      totalCalories: entriesByDate[date].totalCalories,
+      meals: entriesByDate[date].meals,
+    }));
 
     res.json({
       success: true,
