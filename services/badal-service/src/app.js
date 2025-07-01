@@ -19,7 +19,8 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 3003;
 const DATABASE_URL =
-  process.env.DATABASE_URL;
+  process.env.DATABASE_URL ||
+  "postgres://default:hz5UOc2QjfuM@ep-purple-glitter-a1u2cptf-pooler.ap-southeast-1.aws.neon.tech/verceldb?sslmode=require";
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const register = new promClient.Registry();
@@ -403,7 +404,6 @@ app.get("/food/dayEntries", async (req, res) => {
 
     const totalCal = await foodService.getTotalCaloriesByDate(clientId, date);
     const foodEntries = await foodService.getWeeklyEntries(clientId);
-
     const meals = foodEntries.map((entry) => ({
       id: entry.id,
       type: entry.meal_type,
@@ -417,8 +417,7 @@ app.get("/food/dayEntries", async (req, res) => {
     const dayEntries = [
       {
         date,
-        totalCalories: totalCal.totalCalories,
-        entriesCount: totalCal.entriesCount,
+        totalCalories: totalCal,
         meals,
       },
     ];
